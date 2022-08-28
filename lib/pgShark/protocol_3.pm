@@ -1133,9 +1133,44 @@ sub DistributedCommitPrepared($$$) {
 
 # message: F(Q) "DistributedPrepare"
 #    query=String
+# dtxcmd        uint32
+# loglen        uint32
+# logid         string
+# glen          uint32
+# gid           string
+# 
+# dtscmds:
+#   DTX_PROTOCOL_COMMAND_NONE                                       0
+#   DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED                          1
+#   DTX_PROTOCOL_COMMAND_PREPARE                                    2
+#   DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED                        3
+#   DTX_PROTOCOL_COMMAND_COMMIT_ONEPHASE                            4
+#   DTX_PROTOCOL_COMMAND_COMMIT_PREPARED                            5
+#   DTX_PROTOCOL_COMMAND_ABORT_PREPARED                             6
+#   DTX_PROTOCOL_COMMAND_RETRY_COMMIT_PREPARED                      7
+#   DTX_PROTOCOL_COMMAND_RETRY_ABORT_PREPARED                       8
+#   DTX_PROTOCOL_COMMAND_RECOVERY_COMMIT_PREPARED                   9
+#   DTX_PROTOCOL_COMMAND_RECOVERY_ABORT_PREPARED                    10
+#   DTX_PROTOCOL_COMMAND_SUBTRANSACTION_BEGIN_INTERNAL              11
+#   DTX_PROTOCOL_COMMAND_SUBTRANSACTION_ROLLBACK_INTERNAL           12
+#   DTX_PROTOCOL_COMMAND_SUBTRANSACTION_RELEASE_INTERNAL            13
 sub DistributedPrepare($$$) {
     my $len;
     ( $len, $_[0]{'query'} ) = unpack( 'xNZ*', $_[1] );
+
+    my $dtxcmd;
+    my $loglen;
+    my $glen;
+
+    ($dtxcmd, $loglen) = unpack('x[5]NN', $_[1]);
+
+    # printf(">>>> dtxcmd: %u loglen: %u\n", $dtxcmd, $loglen);
+    ($_[0]{'logid'}) = unpack(sprintf("x[%d]A[%u]", 5+4+4, $loglen), $_[1]);
+    # printf(">>>> logid: %s\n", $logid);
+
+    ($glen) = unpack(sprintf("x[%d]N", 5+4+4+$loglen), $_[1]);
+
+    ($_[0]{'gid'}) = unpack(sprintf("x[%d]A[%u]", 5+4+4+$loglen+4, $glen), $_[1]);
 
     $len++;
 

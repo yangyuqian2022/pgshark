@@ -472,7 +472,7 @@ sub DistributedCommitPrepared {
 sub DistributedPrepare {
     my $pg_msg = shift;
 
-    log_output( $pg_msg, "QUERY query=%s", $pg_msg->{'query'} );
+    log_output( $pg_msg, "logid=%s gid=%s", $pg_msg->{'logid'}, $pg_msg->{'gid'} );
 }
 
 sub ReadyForQuery {
@@ -805,7 +805,8 @@ $args{'protocol'} = $args{'2'} ? 2 : 3;
     'Type'                     => \&Type,
     'Update'                   => \&Update,
     'XLogData'                 => \&XLogData,
-    'DistributedCommitPrepared' => \&Query
+    'DistributedCommitPrepared' => \&DistributedCommitPrepared,
+    'DistributedPrepare'        => \&DistributedPrepare
 );
 
 if ( scalar @{ $args{'exclude'} } ) {
