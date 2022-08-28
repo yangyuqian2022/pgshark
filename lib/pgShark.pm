@@ -58,6 +58,7 @@ use Net::Pcap qw(:functions);
 use POSIX ':signal_h';
 use Math::BigInt;
 use Pod::Usage;
+
 our $VERSION   = 0.3;
 our @ISA       = ('Exporter');
 our @EXPORT    = qw/PCAP_FILTER_TEMPLATE dec2dot normalize_query/;

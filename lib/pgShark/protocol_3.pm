@@ -57,11 +57,14 @@ my %frontend_msg_type = (
     # GSSENCRequest has no code
     # StartupMessage has no code
     'S' => 'Sync',
-    'X' => 'Terminate'
+    'X' => 'Terminate',
+    # Custom Message in GreenPlum CDC
+    'M' => 'DistributedCommitPrepared',
+    'T' => 'DistributedPrepare'
 );
 # pre-compile to save time during parsing
 # do not include 'd' which is checked if neither of bellow msg match during parsing
-my $frontend_type_re = qr/^([BCcfDEHFPpQSX]).{4}/s;
+my $frontend_type_re = qr/^([BCcfDEHFPpQSXMT]).{4}/s;
 
 my %backend_msg_type = (
     'R' => 'Authentication',
@@ -178,7 +181,10 @@ my %parsers = (
     'Truncate'                        => \&Truncate,
     'Type'                            => \&Type,
     'Update'                          => \&Update,
-    'XLogData'                        => \&XLogData
+    'XLogData'                        => \&XLogData,
+    # Custom parsers for GreenPlum
+    'DistributedCommitPrepared'       => \&DistributedCommitPrepared,
+    'DistributedPrepare'              => \&DistributedPrepare
 );
 
 my $sslanswer_re     = qr/^[NY]$/;
@@ -1081,6 +1087,52 @@ sub PrimaryKeepalive($$$) {
 # message: F(Q) "Query"
 #    query=String
 sub Query($$$) {
+    my $len;
+    ( $len, $_[0]{'query'} ) = unpack( 'xNZ*', $_[1] );
+
+    $len++;
+
+    return 0 if $len > length $_[1];
+
+    return $len;
+}
+
+# message: F(Q) "DistributedCommitPrepared"
+#    query=String
+# 4,4,4,4,8
+# serial_number:                    uint32       14                  .. 19
+# suid:                             uint32       10                  .. 10
+# ouid:                             uint32       10                  .. 10
+# cuid:                             uint32       10                  .. 10
+# started_timestamp                 int64        714927162743243     .. 714927374002403
+# query_string_len                  uint32       28                  .. 28 [drop database if exists db1;]
+# serializedPlantreelen             uint32
+# serializedQueryDispatchDesclen    uint32
+# serializedDtxContextInfolen       uint32
+# query_string                      string
+# additional attributes...
+sub DistributedCommitPrepared($$$) {
+    my $qlen;
+    my $len1;
+    my $len2;
+    my $len3;
+
+    my $query;
+
+    ( $qlen, $len1, $len2, $len3) = unpack('x[29]NNNN', $_[1]);
+
+    ($_[0]{'query'}) = unpack(sprintf('x[%d]A[%d]', 29+16+$len3, $qlen), $_[1]);    
+    
+    $len++;
+
+    return 0 if $len > length $_[1];
+
+    return $len;
+}
+
+# message: F(Q) "DistributedPrepare"
+#    query=String
+sub DistributedPrepare($$$) {
     my $len;
     ( $len, $_[0]{'query'} ) = unpack( 'xNZ*', $_[1] );
 

@@ -8,3 +8,5 @@ Makefile*
 !META.yml
 MANIFEST*
 !MANIFEST.SKIP
+run.sh
+test*

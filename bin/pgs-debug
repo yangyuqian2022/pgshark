@@ -463,6 +463,18 @@ sub Query {
     log_output( $pg_msg, "QUERY query=%s", $pg_msg->{'query'} );
 }
 
+sub DistributedCommitPrepared {
+    my $pg_msg = shift;
+
+    log_output( $pg_msg, "QUERY query=%s", $pg_msg->{'query'} );
+}
+
+sub DistributedPrepare {
+    my $pg_msg = shift;
+
+    log_output( $pg_msg, "QUERY query=%s", $pg_msg->{'query'} );
+}
+
 sub ReadyForQuery {
     my $pg_msg = shift;
 
@@ -792,7 +804,8 @@ $args{'protocol'} = $args{'2'} ? 2 : 3;
     'Truncate'                 => \&Truncate,
     'Type'                     => \&Type,
     'Update'                   => \&Update,
-    'XLogData'                 => \&XLogData
+    'XLogData'                 => \&XLogData,
+    'DistributedCommitPrepared' => \&Query
 );
 
 if ( scalar @{ $args{'exclude'} } ) {
