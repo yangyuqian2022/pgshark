@@ -1112,6 +1112,7 @@ sub Query($$$) {
 # query_string                      string
 # additional attributes...
 sub DistributedCommitPrepared($$$) {
+    my $len;
     my $qlen;
     my $len1;
     my $len2;
@@ -1121,7 +1122,7 @@ sub DistributedCommitPrepared($$$) {
 
     ( $qlen, $len1, $len2, $len3) = unpack('x[29]NNNN', $_[1]);
 
-    ($_[0]{'query'}) = unpack(sprintf('x[%d]A[%d]', 29+16+$len3, $qlen), $_[1]);    
+    ($_[0]{'query'}) = unpack(sprintf('x[%d]A[%d]', 29+16+$len3, $qlen), $_[1]);
     
     $len++;
 
