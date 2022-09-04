@@ -466,7 +466,7 @@ sub Query {
 sub DistributedCommitPrepared {
     my $pg_msg = shift;
 
-    log_output( $pg_msg, "QUERY query=%s", $pg_msg->{'query'} );
+    log_output( $pg_msg, "QUERY query=%s", $pg_msg->{'query'});
 }
 
 sub DistributedPrepare {

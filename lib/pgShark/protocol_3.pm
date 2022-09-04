@@ -32,6 +32,9 @@ use warnings;
 use Exporter;
 use Pod::Usage;
 
+# Decompress the ztsd compressed cdb message(inlcuding sub plan ...)
+use Compress::Zlib;
+
 our $VERSION = 0.2;
 our @ISA     = ('Exporter');
 our @EXPORT  = qw/pgsql_parser_backend pgsql_parser_frontend
@@ -370,7 +373,15 @@ sub get_msg_type_frontend($$) {
         return 'CancelRequest'  if $code == 80877102;
         return 'GSSENCRequest'  if $code == 80877104;
         return 'SSLRequest'     if $code == 80877103;
+        # $code == 0x00030000
         return 'StartupMessage' if $code == 196608;
+        # https://www.postgresql.org/docs/10/protocol-message-formats.html
+        # Native StartupMessage:
+        #   int32     len
+        #   int32     protocol version number
+        #   string    :key\0v:value\0;
+        #   ...
+        return 'StartupMessage' if $code == 0x70030000;
 
         # my $min = $code%65536; # == 0
         # my $maj = $code/65536; # == 3
@@ -1122,8 +1133,32 @@ sub DistributedCommitPrepared($$$) {
 
     ( $qlen, $len1, $len2, $len3) = unpack('x[29]NNNN', $_[1]);
 
+    # Packing & unpacking C structs: 
+    #   https://perldoc.perl.org/perlpacktut#Integers
+    #
+    # serializedDtxContextInfo:
+    #    DistributedTransactionId               uint32
+    #    DistributedTransactionTimeStamp        uint32
+    #    CommandId                              uint32
+    #    segmateSync                            uint32
+    #    haveDistributedSnapshot                bool/uint8
+    #    cursorContext                          bool/uint8
+    #    
+    #    if haveDistributedSnapshot then
+    #       DistributedTransactionTimeStamp     uint32
+    #       DistributedTransactionId            uint32
+    #       DistributedSnapshotId                int32
+    #       xmin::DistributedTransactionId      uint32
+    #       xmax::DistributedTransactionId      uint32
+    #       dxid::DistributedTransactionId       int32
+    #    end       
+    my $serializedPlantree;
+    my $decompressed_plain_tree;
     ($_[0]{'query'}) = unpack(sprintf('x[%d]A[%d]', 29+16+$len3, $qlen), $_[1]);
-    
+
+    # $decompressed_plain_tree = uncompress($serializedPlantree); 
+    # printf(">>> x[%d]C[%d]C[%d] serializedPlantree: [%s]\n", 29+16+$len3, $qlen, $len1, $serializedPlantree);
+
     $len++;
 
     return 0 if $len > length $_[1];
